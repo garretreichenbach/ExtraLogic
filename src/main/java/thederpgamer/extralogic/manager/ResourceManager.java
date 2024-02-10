@@ -17,7 +17,7 @@ import java.util.HashMap;
  * @author TheDerpGamer
  */
 public class ResourceManager {
-	private static final String[] textureNames = {"wireless-link-module"};
+	private static final String[] textureNames = {"wireless-link-module", "wireless-link-module-active"};
 	private static final String[] iconNames = {"wireless-link-module-icon"};
 	private static final String[] spriteNames = {};
 	private static final String[] modelNames = {};
