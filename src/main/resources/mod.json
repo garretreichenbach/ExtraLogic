@@ -1,0 +1,17 @@
+{
+  "name": "ExtraLogic",
+  "author": "TheDerpGamer",
+  "description": "Adds some new logic blocks for the creative builder.",
+  "version": "1.0.0 - Sequenced",
+  "starmade_version": "0.203.158",
+  "client_mod": false,
+  "server_mod": false,
+  "main_class": "thederpgamer.extralogic.ExtraLogic",
+  "smd_resource_id": 9999,
+  "dependencies": [
+    -1
+  ],
+  "core_mod": true,
+  "requires_class_resize": true,
+  "hard_load_all_classes": true
+}

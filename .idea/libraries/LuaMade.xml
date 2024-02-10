@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="LuaMade">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/lib/LuaMade.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
