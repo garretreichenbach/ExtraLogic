@@ -1,5 +1,6 @@
 package thederpgamer.extralogic.utils;
 
+import api.common.GameServer;
 import org.schema.game.common.controller.Planet;
 import org.schema.game.common.controller.SegmentController;
 import org.schema.game.common.controller.Ship;
@@ -29,5 +30,12 @@ public class ServerUtils {
 			default:
 				return null;
 		}
+	}
+
+	public static SegmentController getSegmentControllerFromDBID(long entityID) {
+		for(SegmentController segmentController : GameServer.getServerState().getSegmentControllersByName().values()) {
+			if(segmentController.getDbId() == entityID) return segmentController;
+		}
+		return null;
 	}
 }

@@ -1,6 +1,5 @@
 package thederpgamer.extralogic;
 
-import api.common.GameCommon;
 import api.config.BlockConfig;
 import api.listener.events.controller.ClientInitializeEvent;
 import api.listener.events.controller.ServerInitializeEvent;
@@ -17,7 +16,7 @@ import thederpgamer.extralogic.manager.EventManager;
 import thederpgamer.extralogic.manager.ResourceManager;
 import thederpgamer.extralogic.networking.client.ClientManager;
 import thederpgamer.extralogic.networking.server.ServerManager;
-import thederpgamer.extralogic.systems.WirelessLinkModule;
+import thederpgamer.extralogic.systems.logic.WirelessLinkModule;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -53,20 +52,19 @@ public class ExtraLogic extends StarMod {
 		ClientManager.initializePackets();
 		ServerManager.initializePackets();
 		registerCommands();
-		if(LuaMadeAPIManager.initialize()) logInfo("Loaded LuaMade API integration.");
+		LuaMadeAPIManager.initialize();
 	}
 
 	@Override
 	public void onClientCreated(ClientInitializeEvent event) {
 		super.onClientCreated(event);
 		initGlossary();
-		if(GameCommon.isClientConnectedToServer()) ClientManager.requestChannelsFromServer();
 	}
 
 	@Override
 	public void onServerCreated(ServerInitializeEvent event) {
 		super.onServerCreated(event);
-		WirelessLinkModule.initialize();
+		WirelessLinkModule.initThread();
 	}
 
 	@Override

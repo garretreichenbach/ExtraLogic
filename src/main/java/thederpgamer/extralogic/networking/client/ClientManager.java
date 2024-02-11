@@ -1,10 +1,9 @@
 package thederpgamer.extralogic.networking.client;
 
-import api.common.GameClient;
 import api.network.packets.PacketUtil;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import org.schema.game.common.data.player.PlayerState;
-import thederpgamer.extralogic.data.LinkChannel;
+import thederpgamer.extralogic.data.linkmodule.LinkChannel;
 import thederpgamer.extralogic.networking.client.packets.*;
 
 /**
@@ -14,7 +13,7 @@ import thederpgamer.extralogic.networking.client.packets.*;
  */
 public class ClientManager {
 
-	private static final ObjectArrayList<ClientCacheData> clientCache = new ObjectArrayList<>();
+	private static final ObjectArrayList<LinkChannel> linkChannelCache = new ObjectArrayList<>();
 
 	public static void initializePackets() {
 		PacketUtil.registerPacket(PacketNewChannelRequest.class);
@@ -33,7 +32,7 @@ public class ClientManager {
 	}
 
 	public static void addChannel(LinkChannel channel) {
-		clientCache.add(channel);
+		linkChannelCache.add(channel);
 	}
 
 	/**
@@ -43,9 +42,8 @@ public class ClientManager {
 	 * @return ClientCacheData
 	 */
 	public static LinkChannel getChannel(String id) {
-		for(ClientCacheData updatable : clientCache) {
-			if(updatable instanceof LinkChannel) {
-				LinkChannel channel = (LinkChannel) updatable;
+		for(LinkChannel channel : linkChannelCache) {
+			if(channel != null) {
 				if(channel.getId().equals(id)) return channel;
 			}
 		}
@@ -54,15 +52,12 @@ public class ClientManager {
 	}
 
 	public static void removeChannel(LinkChannel channel) {
-		clientCache.remove(channel);
-		ObjectArrayList<ClientCacheData> toRemove = new ObjectArrayList<>();
-		for(ClientCacheData updatable : clientCache) {
-			if(updatable instanceof LinkChannel) {
-				LinkChannel c = (LinkChannel) updatable;
-				if(c.getId().equals(channel.getId())) toRemove.add(c);
-			}
+		linkChannelCache.remove(channel);
+		ObjectArrayList<LinkChannel> toRemove = new ObjectArrayList<>();
+		for(LinkChannel c : linkChannelCache) {
+			if(c.getId().equals(channel.getId())) toRemove.add(c);
 		}
-		clientCache.removeAll(toRemove);
+		linkChannelCache.removeAll(toRemove);
 	}
 
 	public static void updateChannel(LinkChannel channel) {
@@ -81,14 +76,7 @@ public class ClientManager {
 	}
 
 	public static ObjectArrayList<LinkChannel> getClientAccessibleChannels() {
-		ObjectArrayList<LinkChannel> channels = new ObjectArrayList<>();
-		for(ClientCacheData updatable : clientCache) {
-			if(updatable instanceof LinkChannel) {
-				LinkChannel channel = (LinkChannel) updatable;
-				if(channel.getFactionId() == 0 || channel.getFactionId() == GameClient.getClientPlayerState().getFactionId() || channel.getOwner().equals(GameClient.getClientPlayerState().getName())) channels.add(channel);
-			}
-		}
-		return channels;
+		return linkChannelCache;
 	}
 
 	public static void requestChannelsFromServer() {

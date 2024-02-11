@@ -1,32 +1,31 @@
-package thederpgamer.extralogic.data;
+package thederpgamer.extralogic.data.linkmodule;
 
 import org.schema.game.common.data.player.PlayerState;
-import thederpgamer.extralogic.networking.client.ClientCacheData;
+
+import java.io.Serializable;
 
 /**
  * [Description]
  *
  * @author Garret Reichenbach
  */
-public class LinkChannel implements ClientCacheData {
+public class LinkChannel implements Serializable {
 
 	private final String id;
 	private String name;
 	private String description;
 	private final String owner;
 	private int factionId;
-	private String password;
 	private boolean active;
 
 	public LinkChannel(String id, String name, String description, PlayerState owner) {
 		this.id = id;
-		if(name.isEmpty()) name = owner.getName() + "'s New Channel";
+		if(name == null || name.isEmpty()) name = owner.getName() + "'s New Channel";
 		this.name = name;
-		if(description.isEmpty()) description = "No description provided.";
+		if(description == null || description.isEmpty()) description = "No description provided.";
 		this.description = description;
 		this.owner = owner.getName();
 		factionId = owner.getFactionId();
-		password = "";
 	}
 
 	public String getId() {
@@ -59,22 +58,6 @@ public class LinkChannel implements ClientCacheData {
 
 	public String getOwner() {
 		return owner;
-	}
-
-	public String getPassword() {
-		return password;
-	}
-
-	public void setPassword(String password) {
-		this.password = password;
-	}
-
-	public void resetPassword() {
-		password = "";
-	}
-
-	public boolean hasPassword() {
-		return !password.isEmpty();
 	}
 
 	public void setActive(boolean active) {

@@ -4,7 +4,7 @@ import api.network.Packet;
 import api.network.PacketReadBuffer;
 import api.network.PacketWriteBuffer;
 import org.schema.game.common.data.player.PlayerState;
-import thederpgamer.extralogic.data.LinkChannel;
+import thederpgamer.extralogic.data.linkmodule.LinkChannel;
 import thederpgamer.extralogic.networking.client.ClientManager;
 
 import java.io.IOException;

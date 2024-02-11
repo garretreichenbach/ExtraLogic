@@ -3,15 +3,16 @@ package thederpgamer.extralogic.element.blocks.logic;
 import api.config.BlockConfig;
 import api.listener.events.block.SegmentPieceActivateByPlayer;
 import api.listener.events.block.SegmentPieceActivateEvent;
+import org.schema.game.common.data.SegmentPiece;
 import org.schema.game.common.data.element.ElementKeyMap;
 import org.schema.game.common.data.element.FactoryResource;
 import org.schema.schine.graphicsengine.core.GraphicsContext;
-import thederpgamer.extralogic.data.LinkChannel;
+import thederpgamer.extralogic.data.linkmodule.LinkChannel;
 import thederpgamer.extralogic.element.blocks.ActivationInterface;
 import thederpgamer.extralogic.element.blocks.Block;
 import thederpgamer.extralogic.gui.linkchannel.WirelessLinkModuleDialog;
 import thederpgamer.extralogic.manager.ResourceManager;
-import thederpgamer.extralogic.systems.WirelessLinkModule;
+import thederpgamer.extralogic.systems.logic.WirelessLinkModule;
 
 import java.util.Objects;
 
@@ -35,22 +36,11 @@ public class WirelessLinkModuleBlock extends Block implements ActivationInterfac
 		blockInfo.setInRecipe(true);
 		blockInfo.setShoppable(true);
 		blockInfo.setPrice(ElementKeyMap.getInfo(ElementKeyMap.LOGIC_WIRELESS).price);
-		blockInfo.drawLogicConnection = true;
+		blockInfo.drawLogicConnection = false;
 		blockInfo.setOrientatable(false);
 		blockInfo.signal = true;
-//		blockInfo.canActivate = true;
 		blockInfo.hasActivationTexure = true;
-
-		addController(blockInfo.getId());
-		addControlling(blockInfo.getId());
-		for(short id : ElementKeyMap.getInfo(ElementKeyMap.ACTIVAION_BLOCK_ID).controlledBy) {
-			addControlling(id);
-			addController(id);
-		}
-		for(short id : ElementKeyMap.getInfo(ElementKeyMap.ACTIVAION_BLOCK_ID).controlling) {
-			addControlling(id);
-			addController(id);
-		}
+		blockInfo.canActivate = true;
 
 		BlockConfig.addRecipe(blockInfo, ElementKeyMap.getInfo(ElementKeyMap.LOGIC_WIRELESS).getProducedInFactoryType(),
 				(int) ElementKeyMap.getInfo(ElementKeyMap.LOGIC_WIRELESS).getFactoryBakeTime(),
@@ -69,13 +59,23 @@ public class WirelessLinkModuleBlock extends Block implements ActivationInterfac
 	@Override
 	public void onPlayerActivation(SegmentPieceActivateByPlayer event) {
 		WirelessLinkModule module = WirelessLinkModule.getInstance(event.getSegmentPiece().getSegmentController());
-		if(module != null) WirelessLinkModuleDialog.open(event.getSegmentPiece(), module, event.getPlayer());
-		else throw new NullPointerException("WirelessLinkModule instance is null even though it's been placed!");
+		if(module != null) {
+			WirelessLinkModuleDialog.open(event.getSegmentPiece(), module, event.getPlayer());
+			event.getSegmentPiece().setActive(!event.getSegmentPiece().isActive());
+			event.setCanceled(true);
+		} else throw new NullPointerException("WirelessLinkModule instance is null even though it's been placed!");
 	}
 
 	@Override
 	public void onLogicActivation(SegmentPieceActivateEvent event) {
-		LinkChannel channel = WirelessLinkModule.getChannel(event.getSegmentPiece());
-		if(channel != null && WirelessLinkModule.checkValid(Objects.requireNonNull(WirelessLinkModule.getDataFromBlock(event.getSegmentPiece())))) WirelessLinkModule.toggleChannel(channel, event.getSegmentPiece().isActive());
+		if(event.isServer()) {
+			SegmentPiece segmentPiece = event.getSegmentPiece();
+			LinkChannel channel = WirelessLinkModule.getChannel(event.getSegmentPiece());
+			if(channel != null && WirelessLinkModule.checkValid(Objects.requireNonNull(WirelessLinkModule.getDataFromBlock(event.getSegmentPiece())))) {
+				WirelessLinkModule.WirelessLinkModuleData data = WirelessLinkModule.getDataFromBlock(segmentPiece);
+				assert data != null;
+				WirelessLinkModule.toggleChannel(channel, data, segmentPiece);
+			}
+		}
 	}
 }

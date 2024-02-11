@@ -7,7 +7,7 @@ import api.network.PacketWriteBuffer;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import org.schema.game.common.data.player.PlayerState;
 import thederpgamer.extralogic.ExtraLogic;
-import thederpgamer.extralogic.data.LinkChannel;
+import thederpgamer.extralogic.data.linkmodule.LinkChannel;
 import thederpgamer.extralogic.networking.client.ClientManager;
 
 import java.io.IOException;

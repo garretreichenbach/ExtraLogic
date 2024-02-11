@@ -15,8 +15,8 @@ import org.schema.schine.graphicsengine.forms.gui.newgui.GUIDialogWindow;
 import org.schema.schine.graphicsengine.forms.gui.newgui.GUIHorizontalArea;
 import org.schema.schine.graphicsengine.forms.gui.newgui.GUIHorizontalButtonTablePane;
 import org.schema.schine.input.InputState;
-import thederpgamer.extralogic.data.LinkChannel;
-import thederpgamer.extralogic.systems.WirelessLinkModule;
+import thederpgamer.extralogic.data.linkmodule.LinkChannel;
+import thederpgamer.extralogic.systems.logic.WirelessLinkModule;
 
 /**
  * [Description]
@@ -64,8 +64,18 @@ public class WirelessLinkModuleDialog extends PlayerInput {
 		private final WirelessLinkModule module;
 		private final PlayerState player;
 
-		public WirelessLinkModulePanel(InputState inputState, GUICallback guiCallback, SegmentPiece segmentPiece, WirelessLinkModule module, PlayerState player) {
-			super("WIRELESS_LINK_MODULE_UI", inputState, 600, 500, guiCallback, "Wireless Link Module", "");
+		public WirelessLinkModulePanel(InputState inputState, GUICallback guiCallback, final SegmentPiece segmentPiece, final WirelessLinkModule module, PlayerState player) {
+			super("WIRELESS_LINK_MODULE_UI", inputState, 600, 500, guiCallback, (new Object() {
+				@Override
+				public String toString() {
+					try {
+						if(module != null && module.getData(segmentPiece) != null && module.getData(segmentPiece).hasChannel()) {
+							return "Wireless Link Module - " + module.getData(segmentPiece).getChannel().getName();
+						}
+					} catch(Exception ignored) {}
+					return "Wireless Link Module";
+				}
+			}.toString()), "");
 			this.segmentPiece = segmentPiece;
 			this.module = module;
 			this.player = player;

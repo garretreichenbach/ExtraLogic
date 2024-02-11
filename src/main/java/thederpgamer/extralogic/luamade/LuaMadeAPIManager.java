@@ -1,25 +1,19 @@
 package thederpgamer.extralogic.luamade;
 
 import api.mod.StarLoader;
-import luamade.lua.element.block.Block;
-import luamade.luawrap.LuaMadeUserdata;
-import org.luaj.vm2.LuaBoolean;
-import org.luaj.vm2.LuaFunction;
-import org.luaj.vm2.LuaValue;
-import thederpgamer.extralogic.element.ElementManager;
+import thederpgamer.extralogic.ExtraLogic;
+
+import java.util.Objects;
 
 public class LuaMadeAPIManager {
 
 	public static boolean initialize() {
-		if(StarLoader.getModFromName("LuaMade") != null) {
-			LuaMadeUserdata.graftMethod(Block.class, "isHoloProjector", new LuaFunction() {
-				@Override
-				public LuaValue call(LuaValue arg) {
-					Block block = (Block) arg.checkuserdata(Block.class);
-					return LuaBoolean.valueOf(block.getId() == ElementManager.getBlock("Holo Projector").getId());
-				}
-			});
+		if(StarLoader.getModFromName("LuaMade") != null && Objects.requireNonNull(StarLoader.getModFromName("LuaMade")).isEnabled()) {
+			ExtraLogic.getInstance().logInfo("Loaded LuaMade API integration.");
 			return true;
-		} else return false;
+		} else {
+			ExtraLogic.getInstance().logInfo("LuaMade API not found. Skipping integration.");
+			return false;
+		}
 	}
 }

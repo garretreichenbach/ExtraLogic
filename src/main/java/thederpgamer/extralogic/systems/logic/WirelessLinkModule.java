@@ -1,6 +1,7 @@
-package thederpgamer.extralogic.systems;
+package thederpgamer.extralogic.systems.logic;
 
 import api.common.GameCommon;
+import api.common.GameServer;
 import api.mod.config.PersistentObjectUtil;
 import api.utils.game.module.ModManagerContainerModule;
 import api.utils.game.module.util.SimpleDataStorageMCModule;
@@ -8,18 +9,21 @@ import org.schema.game.common.controller.SegmentController;
 import org.schema.game.common.controller.Ship;
 import org.schema.game.common.controller.SpaceStation;
 import org.schema.game.common.controller.elements.ManagerContainer;
+import org.schema.game.common.data.ManagedSegmentController;
 import org.schema.game.common.data.SegmentPiece;
 import org.schema.game.common.data.element.ElementCollection;
 import org.schema.game.common.data.world.SimpleTransformableSendableObject;
 import org.schema.schine.graphicsengine.core.Timer;
 import thederpgamer.extralogic.ExtraLogic;
-import thederpgamer.extralogic.data.LinkChannel;
+import thederpgamer.extralogic.data.linkmodule.LinkChannel;
+import thederpgamer.extralogic.data.linkmodule.LinkModuleRunnable;
 import thederpgamer.extralogic.element.ElementManager;
 import thederpgamer.extralogic.networking.client.ClientManager;
+import thederpgamer.extralogic.utils.ServerUtils;
 
+import java.io.Serializable;
 import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.Queue;
+import java.util.UUID;
 
 /**
  * [Description]
@@ -28,40 +32,32 @@ import java.util.Queue;
  */
 public class WirelessLinkModule extends SimpleDataStorageMCModule {
 
-	private static final Queue<Runnable> activationQueue = new LinkedList<>();
+	public static final HashMap<LinkChannel, LinkModuleRunnable> activationMap = new HashMap<>();
+	private static final HashMap<WirelessLinkModuleData, SegmentPiece> moduleMapTemp = new HashMap<>();
 
-	//Tweak these values as needed in case of server lag or other issues
-	private static final int MAX_ACTIVE_THREADS = 5;
-	private static final int DELAY = 300;
-	private static final int QUEUE_HANDLE_TIMER = 1000;
-	//
-
-	private static long lastQueueHandle = System.currentTimeMillis();
-
-	public WirelessLinkModule(SegmentController ship, ManagerContainer<?> managerContainer) {
-		super(ship, managerContainer, ExtraLogic.getInstance(), ElementManager.getBlock("Wireless Link Module").getId());
-	}
-
-	public static void initialize() {
-		activationQueue.clear();
-		(new Thread("WirelessLinkModuleQueueHandler") {
+	public static void initThread() {
+		(new Thread("Wireless Link Module Activation Thread") {
 			@Override
 			public void run() {
 				while(true) {
-					try {
-						if(System.currentTimeMillis() - lastQueueHandle > QUEUE_HANDLE_TIMER) {
-							runTasks();
-							lastQueueHandle = System.currentTimeMillis();
+					if(GameCommon.isDedicatedServer() || GameCommon.isOnSinglePlayer()) {
+						for(LinkModuleRunnable runnable : activationMap.values()) {
+							runnable.run();
 						}
-					} catch(Exception exception) {
-						exception.printStackTrace();
-						//Try to re-initialize the queue handler if it fails
-						ExtraLogic.getInstance().logException("WirelessLinkModuleQueueHandler failed to run. Re-initializing...", exception);
-						initialize();
+						activationMap.clear();
+					}
+					try {
+						Thread.sleep(100);
+					} catch(InterruptedException exception) {
+						ExtraLogic.getInstance().logException("WirelessLinkModule Exception", exception);
 					}
 				}
 			}
 		}).start();
+	}
+
+	public WirelessLinkModule(SegmentController ship, ManagerContainer<?> managerContainer) {
+		super(ship, managerContainer, ExtraLogic.getInstance(), ElementManager.getBlock("Wireless Link Module").getId());
 	}
 
 	public static WirelessLinkModule getInstance(SegmentController segmentController) {
@@ -92,10 +88,8 @@ public class WirelessLinkModule extends SimpleDataStorageMCModule {
 	public static boolean checkValid(WirelessLinkModuleData data) {
 		if(data.hasChannel()) {
 			LinkChannel channel = getChannel(data.channel.getId());
-			if(channel == null) {
-				data.setChannel(null);
-				ExtraLogic.getInstance().logInfo("Channel " + data.channel.getId() + " does not exist. Removing from block...");
-			} else return true;
+			if(channel == null) data.setChannel(null);
+			else return true;
 		}
 		return false;
 	}
@@ -141,52 +135,32 @@ public class WirelessLinkModule extends SimpleDataStorageMCModule {
 		} else ClientManager.requestChannelRemove(channel);
 	}
 
-	public static void toggleChannel(LinkChannel linkChannel, final boolean active) {
+	/**
+	 * Toggles the active state of a channel.
+	 *
+	 * @param linkChannel The channel to toggle
+	 * @param activatorData The data of the module that activated the channel
+	 * @param activator The segment piece of the module that activated the channel
+	 */
+	public static void toggleChannel(LinkChannel linkChannel, WirelessLinkModuleData activatorData, SegmentPiece activator) {
 		if(GameCommon.isDedicatedServer() || GameCommon.isOnSinglePlayer()) {
-			for(final WirelessLinkModule module : PersistentObjectUtil.getCopyOfObjects(ExtraLogic.getInstance().getSkeleton(), WirelessLinkModule.class)) {
-				for(final WirelessLinkModuleData data : module.getDataMap().dataMap.values()) {
-					if(data.hasChannel() && data.getChannel().getId().equals(linkChannel.getId())) {
-						//Let's spawn a couple threads to handle this just in case somebody gets some funny ideas and tries to break the server
-						//Probably also want to limit the number of threads that can be spawned at once, and any extras should be queued up
-						addToQueue(new Runnable() {
-							@Override
-							public void run() {
-								//Let's also add a slight delay to discourage people from making spam clocks
-								try {
-									Thread.sleep(DELAY);
-								} catch(InterruptedException exception) {
-									exception.printStackTrace();
-								}
-								data.getChannel().setActive(active);
-								SegmentPiece segmentPiece = module.getSegmentPiece(data);
-								if(segmentPiece != null) {
-									module.getManagerContainer().handleBlockActivate(segmentPiece, segmentPiece.isActive(), active);
-									segmentPiece.setActive(active);
-								}
-								/* Probably don't want to send packets to every client every time, so let's just update the data and let the built-in activation system handle the rest
-								module.flagUpdatedData();
-								updateChannel(linkChannel);
-								 */
+			if(activationMap.get(linkChannel) != null) return;
+			for(SegmentController controller : GameServer.getServerState().getSegmentControllersByName().values()) {
+				if(controller instanceof ManagedSegmentController<?>) {
+					ManagerContainer<?> container = ServerUtils.getManagerContainer(controller);
+					if(container != null) {
+						WirelessLinkModule module = (WirelessLinkModule) container.getModMCModule(ElementManager.getBlock("Wireless Link Module").getId());
+						for(WirelessLinkModuleData data : module.getDataMap().dataMap.values()) {
+							if(data.hasChannel() && data.getChannel().getId().equals(linkChannel.getId()) && !data.equals(activatorData)) {
+								if(data.getSegmentPiece() != null) moduleMapTemp.put(data, data.getSegmentPiece());
 							}
-						});
+						}
 					}
 				}
 			}
-		}
-	}
-
-	private static void addToQueue(Runnable runnable) {
-		activationQueue.add(runnable);
-	}
-
-	private static void runTasks() {
-		if(activationQueue.size() > 0) {
-			for(int i = 0; i < MAX_ACTIVE_THREADS; i++) {
-				if(activationQueue.size() > 0) {
-					Runnable runnable = activationQueue.poll();
-					if(runnable != null) runnable.run();
-				}
-			}
+			if(moduleMapTemp.isEmpty()) return;
+			activationMap.put(linkChannel, new LinkModuleRunnable(activatorData, activator, moduleMapTemp));
+			moduleMapTemp.clear();
 		}
 	}
 
@@ -232,13 +206,21 @@ public class WirelessLinkModule extends SimpleDataStorageMCModule {
 		private final HashMap<Long, WirelessLinkModuleData> dataMap = new HashMap<>();
 	}
 
-	public static class WirelessLinkModuleData {
+	public class WirelessLinkModuleData implements Serializable {
 
-		public final long indexAndOrientation;
-		private LinkChannel channel;
+		public long indexAndOrientation;
+		public long entityID;
+		public String linkID;
+		public LinkChannel channel;
+
+		public WirelessLinkModuleData() {
+
+		}
 
 		public WirelessLinkModuleData(SegmentPiece segmentPiece) {
 			indexAndOrientation = ElementCollection.getIndex4(segmentPiece.getAbsoluteIndex(), segmentPiece.getOrientation());
+			entityID = segmentPiece.getSegmentController().getDbId();
+			linkID = UUID.randomUUID().toString();
 		}
 
 		public LinkChannel getChannel() {
@@ -251,6 +233,31 @@ public class WirelessLinkModule extends SimpleDataStorageMCModule {
 
 		public boolean hasChannel() {
 			return channel != null;
+		}
+
+		@Override
+		public boolean equals(Object obj) {
+			if(obj instanceof WirelessLinkModuleData) {
+				WirelessLinkModuleData data = (WirelessLinkModuleData) obj;
+				return data.linkID.equals(linkID) && data.entityID == entityID && data.indexAndOrientation == indexAndOrientation;
+			}
+			return false;
+		}
+
+		public SegmentPiece getSegmentPiece() {
+			try {
+				SegmentController controller = ServerUtils.getSegmentControllerFromDBID(entityID);
+				if(controller != null) {
+					ManagerContainer<?> container = ServerUtils.getManagerContainer(controller);
+					if(container != null) {
+						return container.getSegmentController().getSegmentBuffer().getPointUnsave(ElementCollection.getPosIndexFrom4(indexAndOrientation));
+					}
+				}
+//				return getManagerContainer().getSegmentController().getSegmentBuffer().getPointUnsave(ElementCollection.getPosIndexFrom4(indexAndOrientation));
+			} catch(Exception exception) {
+				ExtraLogic.getInstance().logException("WirelessLinkModuleData Exception", exception);
+			}
+			return null;
 		}
 	}
 }

@@ -17,7 +17,7 @@ import org.schema.schine.graphicsengine.forms.gui.newgui.GUIContentPane;
 import org.schema.schine.graphicsengine.forms.gui.newgui.GUIDialogWindow;
 import org.schema.schine.input.InputState;
 import thederpgamer.extralogic.networking.client.ClientManager;
-import thederpgamer.extralogic.systems.WirelessLinkModule;
+import thederpgamer.extralogic.systems.logic.WirelessLinkModule;
 
 import java.util.UUID;
 

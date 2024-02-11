@@ -1,15 +1,18 @@
 package thederpgamer.extralogic.manager;
 
+import api.common.GameCommon;
 import api.listener.Listener;
 import api.listener.events.block.SegmentPieceActivateByPlayer;
 import api.listener.events.block.SegmentPieceActivateEvent;
+import api.listener.events.player.PlayerSpawnEvent;
 import api.listener.events.register.ManagerContainerRegisterEvent;
 import api.mod.StarLoader;
 import thederpgamer.extralogic.ExtraLogic;
 import thederpgamer.extralogic.element.ElementManager;
 import thederpgamer.extralogic.element.blocks.ActivationInterface;
 import thederpgamer.extralogic.element.blocks.Block;
-import thederpgamer.extralogic.systems.WirelessLinkModule;
+import thederpgamer.extralogic.networking.client.ClientManager;
+import thederpgamer.extralogic.systems.logic.WirelessLinkModule;
 
 public class EventManager {
 
@@ -42,6 +45,13 @@ public class EventManager {
 						break;
 					}
 				}
+			}
+		}, instance);
+
+		StarLoader.registerListener(PlayerSpawnEvent.class, new Listener<PlayerSpawnEvent>() {
+			@Override
+			public void onEvent(PlayerSpawnEvent playerSpawnEvent) {
+				if(GameCommon.isClientConnectedToServer() || GameCommon.isOnSinglePlayer()) ClientManager.requestChannelsFromServer();
 			}
 		}, instance);
 	}

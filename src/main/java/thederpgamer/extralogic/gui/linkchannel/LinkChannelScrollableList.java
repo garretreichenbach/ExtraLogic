@@ -7,9 +7,9 @@ import org.schema.schine.graphicsengine.forms.font.FontLibrary;
 import org.schema.schine.graphicsengine.forms.gui.*;
 import org.schema.schine.graphicsengine.forms.gui.newgui.*;
 import org.schema.schine.input.InputState;
-import thederpgamer.extralogic.data.LinkChannel;
+import thederpgamer.extralogic.data.linkmodule.LinkChannel;
 import thederpgamer.extralogic.networking.client.ClientManager;
-import thederpgamer.extralogic.systems.WirelessLinkModule;
+import thederpgamer.extralogic.systems.logic.WirelessLinkModule;
 
 import java.util.Collection;
 import java.util.Comparator;
@@ -110,10 +110,35 @@ public class LinkChannelScrollableList extends ScrollableTableList<LinkChannel> 
 			GUIClippedRow statusRow = createRow(channel.isActive() ? "Active" : "Inactive");
 
 			LinkChannelScrollableListRow listRow = new LinkChannelScrollableListRow(getState(), channel, idRow, nameRow, statusRow);
-			GUIAncor anchor = new GUIAncor(getState(), panel.getWidth() - 28.0f, 28.0F);
+			GUIAncor anchor = new GUIAncor(getState(), panel.getWidth() - 28.0f, 68.0F);
 			GUIHorizontalButtonTablePane buttonPane = new GUIHorizontalButtonTablePane(getState(), 3, 1, anchor);
 			buttonPane.onInit();
 
+			buttonPane.addButton(0, 0, "SET CHANNEL", GUIHorizontalArea.HButtonColor.GREEN, new GUICallback() {
+				@Override
+				public void callback(GUIElement guiElement, MouseEvent mouseEvent) {
+					if(mouseEvent.pressedLeftMouse()) {
+						data.setChannel(channel);
+						module.flagUpdatedData();
+						flagDirty();
+					}
+				}
+
+				@Override
+				public boolean isOccluded() {
+					return getState().getController().getPlayerInputs().get(getState().getController().getPlayerInputs().size() - 1) instanceof NewChannelDialog;
+				}
+			}, new GUIActivationCallback() {
+				@Override
+				public boolean isVisible(InputState inputState) {
+					return true;
+				}
+
+				@Override
+				public boolean isActive(InputState inputState) {
+					return true;
+				}
+			});
 			buttonPane.addButton(1, 0, "RENAME CHANNEL", GUIHorizontalArea.HButtonColor.BLUE, new GUICallback() {
 				@Override
 				public void callback(GUIElement guiElement, MouseEvent mouseEvent) {
@@ -161,16 +186,6 @@ public class LinkChannelScrollableList extends ScrollableTableList<LinkChannel> 
 							module.flagUpdatedData();
 							flagDirty();
 						}
-						/*
-						if(module.getData(segmentPiece).getChannel().getOwner().equals(player.getName()) || player.isAdmin()) {
-							LinkChannel channel = module.getData(segmentPiece).getChannel();
-							if(channel != null) {
-								WirelessLinkModule.removeChannel(channel);
-								module.getData(segmentPiece).setChannel(null);
-								module.flagUpdatedData();
-							}
-						}
-						 */
 					}
 				}
 
@@ -189,12 +204,15 @@ public class LinkChannelScrollableList extends ScrollableTableList<LinkChannel> 
 					return true;
 				}
 			});
+			anchor.attach(buttonPane);
 
 			GUITextOverlayTableInnerDescription description = new GUITextOverlayTableInnerDescription(10, 10, getState());
 			description.setFont(FontLibrary.FontSize.SMALL.getFont());
 			description.onInit();
 			description.setTextSimple(channel.getDescription());
+			description.setPos(0, buttonPane.getHeight() + 2, 0);
 			anchor.attach(description);
+
 			listRow.expanded = new GUIElementList(getState());
 			listRow.expanded.add(new GUIListElement(anchor, getState()));
 			listRow.expanded.attach(anchor);
